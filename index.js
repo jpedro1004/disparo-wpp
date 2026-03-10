@@ -8,11 +8,12 @@ const client = new Client({
 });
 
 client.on('qr', qr => {
+  console.log('Escaneie o QR Code abaixo:');
   qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', async () => {
-  console.log('WhatsApp pronto 🚀');
+  console.log('WhatsApp conectado 🚀');
   await delay(5000);
   enviarMensagens();
 });
@@ -20,20 +21,27 @@ client.on('ready', async () => {
 client.initialize();
 
 function delay(ms) {
-  return new Promise(res => setTimeout(res, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function delayAleatorio() {
+  const min = 240000; // 4 minutos
+  const max = 300000; // 5 minutos
+  return Math.floor(Math.random() * (max - min) + min);
 }
 
 function enviarMensagens() {
+
   const contatos = [];
 
-  fs.createReadStream('contatos.csv')
+  fs.createReadStream('contatosCriciuma.csv')
     .pipe(csv())
     .on('data', (row) => contatos.push(row))
     .on('end', async () => {
 
-      const imagem = MessageMedia.fromFilePath('./image-floripa.jpg');
+      const imagem = MessageMedia.fromFilePath('./image-criciuma.jpg');
 
-      const mensagem = `👋 Olá! Aqui é Vitor da Microsom Florianópolis.
+      const mensagem = `👋 Olá! Aqui é Vitor da Microsom Santa Catarina.
 
 Queremos convidar você para um Encontro Presencial promovido pela Cochlear e Politec Saúde.
 
@@ -41,29 +49,29 @@ Queremos convidar você para um Encontro Presencial promovido pela Cochlear e Po
 
 No evento, você poderá:
 
-* 🎧 Fazer uma avaliação preventiva do seu processador (com agendamento)
-* 🔧 Tirar dúvidas e receber orientações
-* 🤝 Encontrar outros usuários Cochlear e partilhar experiências
+🎧 Fazer uma avaliação preventiva do seu processador (com agendamento)
+🔧 Tirar dúvidas e receber orientações
+🤝 Encontrar outros usuários Cochlear e partilhar experiências
 
 Você gostaria de participar?`;
 
-      let contador = 0;
+      let enviados = 0;
 
       for (const c of contatos) {
+
         try {
 
           const numeroBase = String(c.numero).replace(/\D/g, '');
 
           let contato = await client.getNumberId(numeroBase);
 
-          // tenta sem o 9
           if (!contato && numeroBase.length === 13) {
             const sem9 = numeroBase.slice(0,4) + numeroBase.slice(5);
             contato = await client.getNumberId(sem9);
           }
 
           if (!contato) {
-            console.log('Não consegui resolver:', numeroBase);
+            console.log('Número inválido:', numeroBase);
             continue;
           }
 
@@ -71,22 +79,28 @@ Você gostaria de participar?`;
             caption: mensagem
           });
 
-          console.log('Enviado pra', numeroBase);
+          enviados++;
 
-          contador++;
+          console.log(`Enviado (${enviados}) -> ${numeroBase}`);
 
-          await delay(9000);
+          const tempo = delayAleatorio();
 
-          if (contador % 20 === 0) {
-            console.log('Pausa maior 😴');
-            await delay(60000);
-          }
+          const minutos = Math.floor(tempo / 60000);
+          const segundos = Math.floor((tempo % 60000) / 1000);
 
-        } catch (e) {
-          console.log('Erro no número', c.numero, e.message);
+          console.log(`Próximo envio em ${minutos}:${segundos.toString().padStart(2,'0')}`);
+
+          await delay(tempo);
+
+        } catch (erro) {
+
+          console.log('Erro ao enviar para:', c.numero);
+
         }
+
       }
 
-      console.log('Finalizado ✅');
+      console.log('Disparo finalizado ✅');
+
     });
 }

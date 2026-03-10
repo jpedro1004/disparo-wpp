@@ -3,4 +3,5 @@ node_modules
 .wwebjs_cache
 contatos.csv
 .env
-image-floripa.jpg
+*.jpg
+*.csv
